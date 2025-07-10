@@ -174,6 +174,68 @@ The demo includes:
 - Interactive mode for hands-on testing
 - Example workflows and use cases
 
+## Bubot - Intelligent Automation Bot
+
+Bubot provides intelligent automation, monitoring, and conversational interface for your snapshots:
+
+### Key Features
+- **Natural Language Commands**: Control snapshots with conversational commands
+- **Automated Scheduling**: Create snapshots automatically at set intervals
+- **Real-time Monitoring**: Monitor changes and generate alerts
+- **Interactive Mode**: Chat-like interface for snapshot management
+- **Background Automation**: Run continuous monitoring and cleanup
+
+### Quick Start with Bubot
+
+```python
+from bubot import Bubot
+
+# Start Bubot with default settings
+bubot = Bubot()
+bubot.start()
+
+# Use natural language commands
+print(bubot.command("create snapshot Initial setup"))
+print(bubot.command("show history 5"))
+print(bubot.command("status"))
+
+# Interactive mode
+bubot.interactive_mode()  # Chat with Bubot!
+```
+
+### Bubot Commands
+
+- `create snapshot [description]` - Create a new snapshot
+- `show history [limit]` - Display snapshot history
+- `rollback to <id>` - Rollback to specific snapshot (supports partial IDs)
+- `rollback previous` - Rollback to previous snapshot
+- `compare <id1> <id2>` - Compare two snapshots
+- `show current` - Display current data state
+- `cleanup [count]` - Clean up old snapshots
+- `status` - Show Bubot and system status
+- `stats` - Display snapshot statistics
+- `help` - Show all available commands
+
+### Running Bubot
+
+```bash
+# Interactive mode
+python3 bubot.py
+
+# Single command
+python3 bubot.py --command "show history"
+
+# Custom configuration
+python3 bubot.py --interval 1800 --max-snapshots 20
+```
+
+### Automation Features
+
+- **Auto-snapshots**: Configurable interval (default: 1 hour)
+- **Auto-cleanup**: Remove old snapshots automatically
+- **Change monitoring**: Alert on rapid data changes
+- **Background operation**: Run continuously as a service
+
 ## Use Cases
 
 - **Configuration Management**: Track configuration changes with easy rollback
@@ -181,11 +243,25 @@ The demo includes:
 - **Application State**: Save and restore application states during development
 - **Experiment Tracking**: Version different model parameters or data sets
 - **Backup and Recovery**: Create recovery points for critical data states
+- **DevOps Automation**: Automated snapshot management for infrastructure
+- **Interactive Debugging**: Chat with your data states during development
 
 ## Requirements
 
 - Python 3.7+
 - Standard library only (no external dependencies)
+
+## Testing
+
+Run comprehensive tests for both core and Bubot functionality:
+
+```bash
+# Test core snapshot functionality
+python3 test_iceberg.py
+
+# Test Bubot automation and commands
+python3 test_bubot.py
+```
 
 ## License
 
