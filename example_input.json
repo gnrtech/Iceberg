@@ -1,0 +1,37 @@
+{
+  "companies": [
+    {
+      "name": "Accenture",
+      "url": "https://accenture.wd3.myworkdayjobs.com/accenturecareers"
+    },
+    {
+      "name": "Wipro",
+      "url": "https://wipro.wd3.myworkdayjobs.com/WiproCareers"
+    },
+    {
+      "name": "Infosys",
+      "url": "https://careers.infosys.com"
+    },
+    {
+      "name": "TCS",
+      "url": "https://www.tcs.com/careers"
+    }
+  ],
+  "keywords": [
+    "data engineer",
+    "python",
+    "spark",
+    "azure",
+    "etl"
+  ],
+  "locations": [
+    "india",
+    "bangalore",
+    "hyderabad",
+    "pune",
+    "chennai",
+    "gurgaon",
+    "remote"
+  ],
+  "limit": 15
+}
