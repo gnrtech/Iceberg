@@ -1020,3 +1020,75 @@ MISMATCH -> "<actual mismatch reason>"
 Do NOT use:
 "Mismatched" + separate reason column.
 ```
+
+=======
+1==>
+Coding (Quality Code, Abides to Coding Principles, Ownership of the code) 1) High quality code 2) Code meets functionality 3) Unit tested (automated) 4) Code review and evidence 5) Mentoring team members during coding & code review 6) Doneness criteria met
+
+ Writes clean and well-organized code, making it easy to understand and maintain.
+ Consistently adheres to coding standards, ensuring code consistency across the project.
+ Effectively applies design patterns to improve code structure and maintainability.
+ Implemented unit tests for 2 repos (ODS Data & Streaming Core) with 90% code coverage.
+ For Each PR , will will provide proper description of the change and will attach test document.
+ Ensure that all unit tests are automated and integrated into the CI/CD pipeline.
+ Actively participates in code reviews, providing constructive feedback to improve code quality.
+ 
+
+
+
+
+2==>
+Design & Architecture (Quality of Design, Abides to the Design Principles, Abides to the Architectural Guidelines, UML based design, Maintains a consistent, clean and efficient approach to coding) 1) Architecture & Design practices addressing performance, maintenance, enhancement, feature addition, non functional requirements etc. 2) Clean, simple and consistent design 3) Well documented design & architecture 4) Good OO practices including usage of design patterns as needed 5) Reuse (as applicable)
+
+I have diligently applied architectural practices that address key aspects such as performance, maintenance, and scalability. By conducting thorough performance assessments and integrating optimization strategies, I have ensured that the architecture supports current and future requirements
+My design approach emphasizes simplicity and consistency, aiming to create clean and understandable architectures.
+I  prioritize comprehensive documentation for all design and architectural elements. 
+My documentation includes detailed descriptions of design decisions, architecture diagrams, and usage guidelines. This practice ensures that team members have a clear understanding of the system’s structure and functionality, which facilitates smoother onboarding and knowledge transfer.
+I  consistently apply good object-oriented (OO) practices and utilize design patterns as appropriate. By adhering to principles such as encapsulation, inheritance, and polymorphism
+I have actively sought opportunities for code and design reuse to enhance efficiency and reduce redundancy.
+Each project will maintain seperate utils package to define common functionalites 
+
+3==>
+Successful Delivery 1) Timeliness of deliverables 2) Proactive reporting including escalations of issues/ risks 3) Cost consciousness
+
+I have consistently demonstrated a strong commitment to meeting project deadlines by effectively managing my time and resources. 
+I have maintained a proactive stance on reporting progress and potential issues. By providing regular updates and addressing concerns early, I have ensured that stakeholders are well-informed and that any risks or obstacles are managed promptly.
+I am mindful of cost implications throughout the project lifecycle. By carefully managing resources and seeking cost-effective solutions.
+4==>
+Technical mentoring 1) Mentoring and grooming junior team members
+ 
+ I have actively mentored junior team members by providing clear guidance, support, and constructive feedback on their work.
+ Shared insights and best practices related to technologies and processes, ensuring that junior team members understand and can apply them effectively
+
+5==>
+Motivating team members 1)Encouraging a participative work culture and flexibility in dealing with different personalities/ situations.
+
+I actively encourage team members to take initiative and contribute to decision-making processes. 
+By soliciting input from everyone and valuing their contributions, I have empowered team members to take ownership of their tasks and feel more invested in the team's success. This participative approach has fostered a sense of camaraderie and collective responsibility
+I have prioritized open and transparent communication within the team, which has been crucial in fostering a collaborative work culture. 
+By actively listening to feedback and encouraging dialogue, I have been able to address concerns promptly and keep the team aligned on our goals. This has also facilitated better problem-solving and a more supportive team dynamic.
+
+
+6==>
+Technical/ functional expertise 1) Knowledge of relevant technologies used in project, application, business/ domain of the customer 2) Analytical skills 3) Problem solving capabilities 4) Understanding of application & business requirements to support decision making at project execution
+
+I take up training and upskilling every quarter to stay relevant for my role
+Maintained up-to-date knowledge of how these technologies integrate with the application and meet the needs of the business/domain
+I have effectively used analytical tools and techniques to interpret complex data sets and derive actionable insights.
+Developed and implemented solutions that resolved issues and improved project performance.
+Effectively communicated requirements to stakeholders and team members, facilitating smooth project execution.
+
+7==>
+Quality Process Compliance/Orientation 1) Process documentation 2) Causal analysis 3) Support SEPG to define standards 4) Process metrics (All the above are related to technical/ technology areas)
+
+Will maintain process document for each project in GH Docs, ensuring it is comprehensive and easily understandable.
+Regularly reviewed and validated documentation to ensure it accurately reflects current processes and practices.
+Ensured that all documentation is readily accessible to team members and stakeholders, facilitating compliance and process adherence.
+Developed and implemented corrective actions based on causal analysis findings to prevent recurrence of issues 
+Actively participated in discussions and workshops with the SEPG to help define and refine technical standards.
+
+8==>
+Revenue / Profit Realization 1) Timely Realization of entire revenue 2) Gross Profit Margin Target achievement 3) Cost Control through pyramid management & other actions 4) Timely submission of filled timesheet by the team members
+
+9==>
+Meeting or exceeding client expectations 1) Feedback from customer (if applicable) on overall performance (communication, technical, responsiveness, teamwork etc.) 2) Enabling growth in the existing customer/ account/ project 3) Contributions to a successful partnership (feedback, ideas, alternate ways of doing things etc.)
