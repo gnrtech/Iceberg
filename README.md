@@ -1,80 +1,16 @@
-# Project Context — AutoSys to Informatica End-to-End Migration Validation
+# Kiro AI Prompt — Informatica Workflow XML Extraction for End-to-End AutoSys Migration Validation1
 
-Before writing any code, first understand the complete objective and architecture described below.
+## IMPORTANT — UNDERSTAND THE OBJECTIVE BEFORE CODING
 
-Do NOT implement anything yet.
+Do not start coding immediately.
 
-First analyze this requirement, understand the relationships between the systems, identify the required data flow, and summarize your understanding back to me.
+First inspect the actual Informatica workflow XML files and understand their real XML structure, namespaces, references, shortcuts, object relationships, and hierarchy.
 
----
+The ultimate objective is to build an **end-to-end Mainframe Non-Mod vs RDS Mod migration validation**.
 
-## 1. BUSINESS OBJECTIVE
+The Informatica XML extraction is only one stage.
 
-We are migrating existing jobs from a **Mainframe/Non-Mod environment** to an **RDS/Mod environment**.
-
-We need to validate that the migrated RDS/Mod implementation is functionally equivalent to the original Mainframe/Non-Mod implementation.
-
-The comparison should ultimately happen at the **end-to-end job level**, not simply by comparing individual files.
-
-The final objective is to understand:
-
-```text
-AutoSys Job
-    ↓
-Script / Command
-    ↓
-Parameter File
-    ↓
-Informatica Workflow
-    ↓
-Workflow Parameters
-    ↓
-Session
-    ↓
-Mapping
-    ↓
-Source
-    ↓
-Target
-```
-
-and compare the Mainframe Non-Mod side against the RDS Mod side.
-
----
-
-# 2. WHY WE ARE DOING THIS
-
-AutoSys is used to schedule and execute jobs.
-
-Those AutoSys jobs may call:
-
-* Shell scripts
-* Parameter files
-* Informatica workflows
-* Other commands
-
-The Informatica workflow then contains:
-
-* Sessions
-* Mappings
-* Sources
-* Targets
-* Workflow parameters
-* Session parameters
-* Dependencies
-* Conditions
-
-Therefore, comparing only AutoSys jobs is not enough.
-
-Similarly, comparing only Informatica XML files is not enough.
-
-We need to follow the entire execution chain.
-
----
-
-# 3. END-TO-END RELATIONSHIP
-
-The expected relationship is approximately:
+The eventual end-to-end relationship is:
 
 ```text
 AutoSys Box
@@ -83,240 +19,436 @@ AutoSys Job
     ↓
 AutoSys Command / Script
     ↓
-Shell Script
+Script File
     ↓
 Parameter File
     ↓
 Informatica Workflow
     ↓
-Workflow Parameters
+Workflow Parameters / Variables
     ↓
-Session
+Actual Session
     ↓
 Mapping
     ↓
-Source / Target
-```
-
-The actual structure may vary, so inspect the source data rather than assuming this exact chain.
-
----
-
-# 4. AUTOSYS DATA
-
-We already have AutoSys job information.
-
-The AutoSys data contains information such as:
-
-```text
-Box Name
-Job Name
-Machine
-Command
-Condition
-Job Type
-Order
-Other Job Attributes
-```
-
-We have Mainframe Non-Mod and RDS Mod versions.
-
-The two sides have already been extracted and full-joined for comparison.
-
-The AutoSys comparison needs to identify:
-
-* Same jobs
-* Missing jobs
-* Extra jobs
-* Box differences
-* Machine differences
-* Command/script differences
-* Job condition differences
-* Dependency differences
-* Execution-order differences
-* Other relevant job attribute differences
-
----
-
-# 5. AUTOSYS DEPENDENCIES
-
-AutoSys jobs can depend on other jobs.
-
-Dependencies can exist:
-
-* Within the same box
-* Across boxes
-
-Example:
-
-```text
-BOX1
-
-J1
-J2 → J1
-J3 → J2
-J4 → J3
-```
-
-Another box:
-
-```text
-BOX2
-
-J5 → J4
-J6 → J5
-J7 → J6
-```
-
-The actual dependency chain is:
-
-```text
-J1 → J2 → J3 → J4 → J5 → J6 → J7
-```
-
-The comparison must understand these dependencies and execution order.
-
----
-
-# 6. SCRIPT FILES
-
-AutoSys jobs may call shell scripts.
-
-Example:
-
-```text
-AutoSys Job
+Source
     ↓
-/root/dev/run_customer.sh
+Target
 ```
 
-We will provide the actual script files.
+We will eventually perform this for both:
 
-The script may contain:
-
-* Informatica workflow name
-* Parameter file path
-* Environment variables
-* Directory paths
-* Commands
-* Runtime parameters
-* Other configuration
-
-Example:
-
-```bash
-WORKFLOW=WF_CUSTOMER
-PARAM_FILE=/config/customer.par
+```text
+Mainframe / Non-Mod
+RDS / Mod
 ```
 
-The script therefore acts as another link in the execution chain.
+and compare the complete execution flow.
 
 ---
 
-# 7. PARAMETER FILES
+# 1. CURRENT TASK
 
-We will also provide the actual parameter files.
+I have a folder containing Informatica `workflow.xml` files.
 
-Example:
+Build a Python parser that recursively reads all XML files and extracts detailed workflow information into CSV.
 
-```text
-/config/customer.par
-```
+The parser must first inspect the actual XML structure before deciding how to extract the fields.
 
-Contents may contain:
+The required information includes:
 
 ```text
-SOURCE_DIR=/prod/customer/input
-TARGET_DIR=/prod/customer/output
-ENV=PROD
-FILE_NAME=customer.csv
+folder_name
+workflow_name
+workflow_parameters
+workflow_variables
+
+task_type
+task_name
+task_reference
+
+session_name
+session_order
+execution_level
+
+mapping_name
+
+source
+target
+source_file_path
+target_file_path
+file_path
+
+session_parameter_file
+session_parameters
+
+predecessor
+successor
+condition
+
+source_connection
+target_connection
 ```
 
-These values must eventually be resolved.
+Also extract other useful Informatica metadata that is available in the XML.
+
+---
+
+# 2. VERY IMPORTANT — DO NOT ASSUME XML STRUCTURE
+
+Do not assume the XML has a simple structure such as:
+
+```xml
+<Workflow>
+    <Session>
+        <Mapping>
+            <Source>
+            <Target>
+```
+
+First inspect actual XML files.
+
+Identify:
+
+* Root element
+* XML namespaces
+* Folder/repository structure
+* Workflow object
+* Task objects
+* Session objects
+* Mapping references
+* Source definitions
+* Target definitions
+* Parameter definitions
+* Variable definitions
+* Workflow links
+* Dependency definitions
+* Shortcut/reference structures
+* Object IDs
+* Repository references
+* Any nested relationships
+
+Then explain the discovered structure before implementing the parser.
+
+---
+
+# 3. CRITICAL — ACTUAL SESSION NAME
+
+This is the most important requirement.
+
+Do NOT assume that the workflow task name is the actual Session name.
+
+Do NOT assume that a name beginning with:
+
+```text
+Shortcut_
+```
+
+is the Session name.
+
+Do NOT remove `Shortcut_`.
+
+Do NOT add/remove prefixes or suffixes.
+
+Do NOT derive the Session name from the task name.
+
+Do NOT derive the Session name from the mapping name.
+
+Do NOT guess the Session name.
+
+Instead, follow the **actual XML references/relationships** to find the underlying Session object and extract the exact Session name stored there.
+
+Conceptually:
+
+```text
+Workflow
+    ↓
+Workflow Task
+    ↓
+Task Reference / Shortcut / Object Reference
+    ↓
+Referenced Object
+    ↓
+Actual Session Definition
+    ↓
+Exact Session Name
+```
+
+For example, the XML may contain something like:
+
+```text
+Workflow Task
+    ↓
+Reference ID = ABC123
+
+Another XML object
+    ↓
+ID = ABC123
+    ↓
+Name = <actual session name>
+```
+
+The parser must resolve the reference and retrieve the exact `Name` from the actual Session object.
+
+The actual Session name could be anything.
 
 For example:
 
 ```text
-Workflow XML:
-$InputDir/customer.csv
-
-Parameter file:
-InputDir=/prod/customer/input
-
-Resolved value:
-/prod/customer/input/customer.csv
+s_customer_load
+Session_Customer
+CUSTOMER_SESSION
+sess_001
+ABC_LOAD
 ```
 
-The goal is to determine the **actual runtime value**, not just the variable name.
+These are examples only.
+
+Never assume a naming convention.
 
 ---
 
-# 8. INFORMATICA WORKFLOW XML
+# 4. SESSION RESOLUTION
 
-We also have Informatica `workflow.xml` files.
-
-These XML files contain workflow-level information.
-
-We need to extract information such as:
+Create separate fields where the information exists:
 
 ```text
-Folder Name
-Workflow Name
-Workflow Parameters
-Workflow Variables
-Tasks
-Session Name
-Session Order
-Mapping Name
-Sources
-Targets
-Source File Paths
-Target File Paths
-Session Parameter File
-Session Parameters
-Predecessors
-Successors
-Conditions
-Connection Information
-Other relevant configuration
+task_name
+task_reference
+session_reference
+session_name
+session_resolution_status
+session_resolution_reason
 ```
 
-The XML structure must first be inspected.
+The important distinction is:
 
-Do not assume XML tags without examining the actual files.
+```text
+task_name
+```
+
+= the actual workflow task name as represented in the workflow.
+
+```text
+session_name
+```
+
+= the exact name of the underlying Session object resolved from the XML.
+
+For example, if a task references another object, follow the reference.
+
+If resolved:
+
+```text
+session_resolution_status = Resolved
+```
+
+If not:
+
+```text
+session_resolution_status = Unresolved
+```
+
+and:
+
+```text
+session_resolution_reason =
+Unable to resolve Session reference <reference>
+```
+
+Do NOT substitute the task name when the actual Session cannot be resolved.
+
+It is better to return `Unresolved` than to guess.
 
 ---
 
-# 9. INFORMATICA WORKFLOW DEPENDENCIES
+# 5. DO NOT NORMALIZE THE ACTUAL SESSION NAME
 
-A workflow can contain multiple sessions.
+The actual Session name must be preserved exactly as found in the XML.
+
+Do not:
+
+* Strip prefixes
+* Strip suffixes
+* Remove `Shortcut_`
+* Change case
+* Replace characters
+* Construct a name
+* Infer a name from another field
+
+The value should be the exact Session object's name.
+
+---
+
+# 6. FOLDER NAME
+
+Extract the actual Informatica folder/repository folder.
+
+Column:
+
+```text
+folder_name
+```
+
+Use the XML/repository information if available.
+
+If the folder is referenced indirectly, resolve the reference.
+
+Do not assume the folder name is the XML filename.
+
+---
+
+# 7. WORKFLOW NAME
+
+Extract the exact workflow name from the actual Workflow object.
+
+Column:
+
+```text
+workflow_name
+```
+
+Do not derive it from the XML filename unless the XML does not contain a workflow name.
+
+---
+
+# 8. SOURCE XML TRACEABILITY
+
+Every output row must include:
+
+```text
+source_xml_file
+source_xml_path
+```
+
+where appropriate.
+
+This is required for troubleshooting and future migration validation.
+
+---
+
+# 9. WORKFLOW PARAMETERS
+
+Extract all workflow-level parameters.
+
+Columns:
+
+```text
+workflow_parameter_name
+workflow_parameter_value
+```
+
+Preserve all parameters.
+
+If multiple parameters exist, retain them all.
+
+If necessary, represent them as key/value pairs:
+
+```text
+$SourceDir=/prod/input;
+$TargetDir=/prod/output;
+$Environment=PROD
+```
+
+Do not lose parameter information.
+
+---
+
+# 10. WORKFLOW VARIABLES
+
+Extract workflow variables separately where Informatica distinguishes them from parameters.
+
+Column:
+
+```text
+workflow_variables
+```
+
+Preserve variable names and values.
+
+---
+
+# 11. ALL WORKFLOW TASKS
+
+Extract every workflow task.
+
+Possible task types include:
+
+```text
+Session
+Command
+Decision
+Assignment
+Timer
+Event Wait
+Email
+Worklet
+Other
+```
+
+Do not extract only Session tasks.
+
+Create:
+
+```text
+task_type
+task_name
+```
+
+Non-session tasks should also retain dependency information where available.
+
+---
+
+# 12. SESSION TASKS
+
+For every Session task:
+
+1. Identify the task.
+2. Identify any task reference/shortcut.
+3. Follow the reference.
+4. Find the actual Session object.
+5. Extract the exact Session name.
+6. Resolve mapping information.
+7. Extract session configuration.
+
+Required fields:
+
+```text
+session_name
+session_order
+execution_level
+mapping_name
+session_parameter_file
+session_parameters
+```
+
+---
+
+# 13. SESSION ORDER
+
+Determine the execution order based on workflow dependencies/links.
+
+Do not simply use XML node order.
 
 Example:
 
 ```text
-Workflow WF_CUSTOMER
-
 S1
  ↓
 S2
  ↓
 S3
- ↓
-S4
 ```
 
-The extracted information should preserve:
+should produce:
 
 ```text
-Session Order
-Predecessor
-Successor
-Condition
+S1 = 1
+S2 = 2
+S3 = 3
 ```
 
-Parallel branches must also be preserved.
-
-Example:
+If parallel branches exist:
 
 ```text
        S2
@@ -326,436 +458,823 @@ S1
        S3
 ```
 
----
+do not invent a false sequential order.
 
-# 10. MAPPING INFORMATION
-
-Each Informatica session may reference a mapping.
-
-Example:
+Use an execution level where appropriate:
 
 ```text
-Workflow
-    ↓
-Session S1
-    ↓
-Mapping M_CUSTOMER
-    ↓
-Source
-    ↓
-Target
+S1 = Level 1
+S2 = Level 2
+S3 = Level 2
 ```
 
-We need to extract the actual mapping name and associate it with the correct session.
-
----
-
-# 11. SOURCE AND TARGET
-
-We need to know the actual source and target used by each mapping/session.
-
-Example:
+Consider including:
 
 ```text
-Source:
-CUSTOMER_SRC
-
-Target:
-CUSTOMER_TARGET
+execution_level
 ```
 
-If the source or target is a file, also extract the file path.
-
-Example:
+in addition to:
 
 ```text
-Source:
-customer.csv
-
-Source path:
-/prod/input/customer/customer.csv
+session_order
 ```
 
 ---
 
-# 12. PARAMETER RESOLUTION
+# 14. PREDECESSOR
 
-This is extremely important.
+Extract all predecessor tasks.
 
-The XML may contain variables instead of actual values.
-
-For example:
+Column:
 
 ```text
-XML:
+predecessor
+```
+
+Example:
+
+```text
+s_extract
+```
+
+For multiple predecessors:
+
+```text
+s_extract; s_validate
+```
+
+Do not discard dependencies.
+
+---
+
+# 15. SUCCESSOR
+
+Extract all successor tasks.
+
+Column:
+
+```text
+successor
+```
+
+For multiple successors:
+
+```text
+s_load; s_archive
+```
+
+---
+
+# 16. WORKFLOW CONDITION
+
+Extract the actual condition associated with workflow links.
+
+Column:
+
+```text
+condition
+```
+
+Examples may include:
+
+```text
+SUCCESS
+$Session.Status = 0
+Actual Informatica expression
+```
+
+Preserve the actual condition.
+
+---
+
+# 17. MAPPING NAME
+
+Resolve the Mapping associated with the actual Session.
+
+Column:
+
+```text
+mapping_name
+```
+
+Do not assume:
+
+```text
+session_name == mapping_name
+```
+
+Follow the XML relationship.
+
+If Mapping is referenced indirectly, resolve the reference.
+
+---
+
+# 18. SOURCES
+
+Extract all sources associated with the Mapping/Session.
+
+Column:
+
+```text
+source
+```
+
+If there are multiple sources:
+
+```text
+SRC_CUSTOMER; SRC_ADDRESS; SRC_PHONE
+```
+
+Preserve all sources.
+
+---
+
+# 19. TARGETS
+
+Extract all targets.
+
+Column:
+
+```text
+target
+```
+
+If multiple targets:
+
+```text
+TGT_CUSTOMER; TGT_AUDIT
+```
+
+Preserve all targets.
+
+---
+
+# 20. SOURCE FILE PATH
+
+If the source is file-based, extract:
+
+```text
+source_file_path
+```
+
+Example:
+
+```text
 $SOURCE_DIR/customer.csv
 ```
 
-The parameter file may contain:
+If the XML contains a variable rather than an actual path, preserve the original expression.
 
-```text
-SOURCE_DIR=/prod/customer/input
-```
+Do not guess the final path.
 
-The final resolved value should be:
-
-```text
-/prod/customer/input/customer.csv
-```
-
-Therefore, we need to eventually build a parameter-resolution layer:
-
-```text
-XML variable
-     ↓
-Workflow parameter
-     ↓
-Parameter file
-     ↓
-Script/environment variable
-     ↓
-Actual runtime value
-```
-
-The exact precedence must be determined from the actual implementation and files.
-
-Do not assume precedence without inspecting the data.
+Parameter resolution will happen in a later stage.
 
 ---
 
-# 13. SCRIPT PARAMETER RESOLUTION
+# 21. TARGET FILE PATH
 
-The same concept applies to shell scripts.
+Extract:
+
+```text
+target_file_path
+```
+
+If variable-based, preserve the variable expression.
+
+---
+
+# 22. GENERIC FILE PATH
+
+If the XML contains a file path but it cannot clearly be classified as source or target, preserve:
+
+```text
+file_path
+```
+
+Do not incorrectly assign it.
+
+---
+
+# 23. SESSION PARAMETER FILE
+
+Extract the Session parameter file/reference.
+
+Column:
+
+```text
+session_parameter_file
+```
 
 Example:
 
 ```text
-AutoSys command:
-
-/scripts/run_customer.sh -p /config/customer.par
+/config/customer.par
 ```
 
-The script may contain:
+or:
 
 ```text
-WORKFLOW=WF_CUSTOMER
+$PMRootDir/Param/customer.par
 ```
 
-The parameter file contains:
+Preserve exactly what is available in the XML.
+
+---
+
+# 24. SESSION PARAMETERS
+
+Extract all session-level parameters.
+
+Column:
 
 ```text
-SOURCE_DIR=/prod/customer/input
+session_parameters
 ```
 
-We need to eventually resolve:
+Preserve all relevant key/value pairs.
+
+---
+
+# 25. PARAMETER RESOLUTION IS A LATER STAGE
+
+Do not try to fully resolve parameter values if the parameter file is not available yet.
+
+For example, if XML contains:
 
 ```text
-AutoSys Job
+$SOURCE_DIR/customer.csv
+```
+
+preserve:
+
+```text
+source_file_path = $SOURCE_DIR/customer.csv
+```
+
+Later we will provide the actual parameter files and scripts.
+
+Then we will resolve:
+
+```text
+$SOURCE_DIR
     ↓
-run_customer.sh
+Parameter file value
     ↓
-customer.par
-    ↓
-WF_CUSTOMER
-    ↓
-SOURCE_DIR
-    ↓
-/prod/customer/input
+Actual runtime path
+```
+
+The XML extraction must preserve the original variable references so that this later resolution is possible.
+
+---
+
+# 26. CONNECTION INFORMATION
+
+Where available, extract:
+
+```text
+source_connection
+target_connection
+```
+
+and other useful connection metadata.
+
+Never extract passwords, tokens, secrets, private keys, or credentials.
+
+---
+
+# 27. OTHER SESSION CONFIGURATION
+
+Inspect for additional useful fields such as:
+
+```text
+session_log_file
+session_log_directory
+commit_interval
+pre_sql
+post_sql
+error_handling
+recovery_strategy
+partitioning
+integration_service
+operating_system_profile
+```
+
+If these exist in the actual XML, include them as additional columns.
+
+Do not restrict extraction to only the fields explicitly listed in this prompt.
+
+---
+
+# 28. MULTIPLE SOURCES AND TARGETS
+
+A Session/Mapping may contain multiple sources and targets.
+
+Preserve all values.
+
+Preferred representation:
+
+```text
+source = Source1; Source2; Source3
+
+target = Target1; Target2
+```
+
+Do not lose data.
+
+---
+
+# 29. WORKFLOW DEPENDENCY GRAPH
+
+Build the dependency graph from actual XML links.
+
+Support:
+
+* Sequential dependencies
+* Parallel branches
+* Multiple predecessors
+* Multiple successors
+* Conditional paths
+* Branches
+* Merges
+
+Store:
+
+```text
+predecessor
+successor
+condition
+execution_level
 ```
 
 ---
 
-# 14. MAINFRAME VS RDS
+# 30. NON-SESSION TASKS
 
-We will have equivalent information for both environments.
-
-Conceptually:
+Do not discard:
 
 ```text
-MAINFRAME / NON-MOD
-        VS
-RDS / MOD
+Command
+Decision
+Assignment
+Email
+Timer
+Event Wait
+Worklet
 ```
 
-For each side we want to construct:
+Include:
 
 ```text
-AutoSys Job
-Box
-Condition
-Script
-Parameter File
+task_type
+task_name
+predecessor
+successor
+condition
+execution_level
+```
+
+Session-specific fields can remain blank.
+
+---
+
+# 31. XML NAMESPACE HANDLING
+
+Properly detect and handle XML namespaces.
+
+Do not assume simple XPath without namespaces.
+
+The implementation should work with:
+
+* Default namespaces
+* Prefixed namespaces
+* Multiple namespaces
+
+---
+
+# 32. XML REFERENCE RESOLUTION
+
+This is a core requirement.
+
+The parser must resolve references between XML objects.
+
+Look for structures involving:
+
+```text
+ID
+Reference
+Object
+Ref
+Shortcut
+Task
+Session
+Folder
 Workflow
+Repository
+```
+
+The exact names depend on the actual Informatica XML.
+
+Follow references until the actual object is found.
+
+This applies to:
+
+```text
 Session
 Mapping
+Folder
+Workflow
 Source
 Target
-Actual Parameters
 ```
 
-Then compare the two end-to-end structures.
+where required.
 
 ---
 
-# 15. MIGRATION-SPECIFIC NAMING
+# 33. NO GUESSING
 
-The RDS/Mod side may have naming differences.
+If a relationship cannot be resolved:
 
-For example:
+Do NOT infer it from naming conventions.
 
-```text
-Mainframe:
-EMP_CMD
+Do NOT construct a value.
 
-RDS:
-EMP_MOD_CMP
-```
+Do NOT silently use a nearby field.
 
-These may represent the same migrated job.
-
-Similarly, paths may differ:
+Instead report:
 
 ```text
-Mainframe:
-/root/dev/test1/abc.sh
-
-RDS:
-/root/dev1/test1/abc.sh
+resolution_status = Unresolved
+resolution_reason = ...
 ```
 
-Some differences may be expected migration transformations.
-
-Therefore, the future comparison framework must support configurable normalization/mapping rules.
-
-Do not assume every textual difference means a functional difference.
+This is especially important for Session resolution.
 
 ---
 
-# 16. FINAL END-TO-END OBJECTIVE
+# 34. OUTPUT — ONE ROW PER LOGICAL TASK/SESSION
 
-Ultimately we want to produce something like:
+The primary CSV should generally contain one row per workflow task/session.
 
-```text
-Mainframe AutoSys Job
-        ↓
-Mainframe Script
-        ↓
-Mainframe Parameter File
-        ↓
-Mainframe Workflow
-        ↓
-Mainframe Session
-        ↓
-Mainframe Mapping
-        ↓
-Mainframe Source
-        ↓
-Mainframe Target
+Workflow-level information can repeat across rows.
 
-              VS
-
-RDS AutoSys Job
-        ↓
-RDS Script
-        ↓
-RDS Parameter File
-        ↓
-RDS Workflow
-        ↓
-RDS Session
-        ↓
-RDS Mapping
-        ↓
-RDS Source
-        ↓
-RDS Target
-```
-
-Then determine:
+Example:
 
 ```text
-Matched
+folder_name
+workflow_name
+task_type
+task_name
+session_name
+mapping_name
+source
+target
+...
 ```
-
-or identify the exact difference.
 
 ---
 
-# 17. IMPORTANT — THIS IS NOT JUST AN XML EXTRACTION PROJECT
+# 35. REQUIRED OUTPUT COLUMNS
 
-The Informatica XML-to-CSV extraction is only an **intermediate step**.
-
-The ultimate goal is:
+At minimum:
 
 ```text
-AutoSys
-+
-Scripts
-+
-Parameter Files
-+
-Informatica XML
-+
-Resolved Parameters
-=
-End-to-End Job Inventory
+source_xml_file
+source_xml_path
+
+folder_name
+workflow_name
+
+task_type
+task_name
+task_reference
+
+session_reference
+session_name
+session_resolution_status
+session_resolution_reason
+
+workflow_parameter_name
+workflow_parameter_value
+workflow_variables
+
+session_order
+execution_level
+
+mapping_name
+
+source
+target
+source_file_path
+target_file_path
+file_path
+
+session_parameter_file
+session_parameters
+
+source_connection
+target_connection
+
+predecessor
+successor
+condition
 ```
 
-This inventory will later be used for Mainframe Non-Mod vs RDS Mod migration validation.
+Add additional columns when useful fields exist in the XML.
 
-Do not design the XML extraction in a way that prevents us from joining it back to AutoSys jobs, scripts, and parameter files.
+---
 
-Every extracted record must have enough information to trace it back to:
+# 36. MULTIPLE XML FILES
+
+Recursively process all `.xml` files under the input directory.
+
+Example:
 
 ```text
-source XML
-workflow
-session
-mapping
-script
-parameter file
-AutoSys job
+/input/informatica/
+    folder1/
+        workflow1.xml
+        workflow2.xml
+
+    folder2/
+        workflow3.xml
+```
+
+Combine results into:
+
+```text
+informatica_workflow_inventory.csv
+```
+
+---
+
+# 37. ERROR HANDLING
+
+If one XML fails, continue processing the remaining files.
+
+Create:
+
+```text
+informatica_xml_processing_report.csv
+```
+
+with:
+
+```text
+source_xml_file
+status
+error_message
+workflow_count
+task_count
+session_count
+resolved_session_count
+unresolved_session_count
+```
+
+---
+
+# 38. EXTRACTION VALIDATION
+
+For each workflow, validate:
+
+* Workflow name found
+* Tasks found
+* Session tasks found
+* Actual Session references resolved
+* Mapping resolved where available
+* Sources extracted
+* Targets extracted
+* Parameter files identified
+* Dependencies identified
+
+Flag suspicious cases such as:
+
+```text
+Workflow found but zero tasks
+Session task found but actual Session unresolved
+Session resolved but Mapping unresolved
+```
+
+Do not silently produce incomplete information.
+
+---
+
+# 39. SUMMARY
+
+Print:
+
+```text
+Total XML files
+Successfully processed
+Failed files
+Total workflows
+Total tasks
+Total session tasks
+Total actual Sessions resolved
+Total Sessions unresolved
+Total mappings
+Total sources
+Total targets
+Total parameter files
+```
+
+---
+
+# 40. SECURITY
+
+Never output:
+
+```text
+passwords
+secrets
+tokens
+private keys
+credentials
+```
+
+Mask or exclude sensitive values.
+
+---
+
+# 41. MODULAR CODE DESIGN
+
+Use modular functions such as:
+
+```python
+load_xml_files()
+inspect_xml_structure()
+extract_namespaces()
+
+extract_folder()
+extract_workflow()
+extract_workflow_parameters()
+extract_workflow_variables()
+
+extract_tasks()
+resolve_task_reference()
+resolve_session_reference()
+extract_actual_session_name()
+
+extract_session()
+extract_mapping()
+extract_sources()
+extract_targets()
+
+extract_file_paths()
+extract_parameter_file()
+extract_session_parameters()
+
+extract_connections()
+extract_dependencies()
+calculate_execution_order()
+
+build_output_rows()
+generate_processing_report()
+generate_summary()
+save_csv()
+```
+
+Do not put all logic into one large function.
+
+---
+
+# 42. DO NOT HARD-CODE EXAMPLES
+
+Do not hard-code:
+
+```text
+Shortcut_to_s_customer_load
+s_customer_load
+WF_CUSTOMER
+m_customer_load
+SRC_CUSTOMER
+TGT_CUSTOMER
+```
+
+These are only examples.
+
+Use the actual XML structure and actual values.
+
+---
+
+# 43. FUTURE END-TO-END INTEGRATION
+
+The extracted Informatica data will later be combined with:
+
+```text
+AutoSys CSV
++
+Script files
++
+Parameter files
++
+Informatica workflow CSV
+```
+
+The final relationship will be:
+
+```text
+AutoSys Box
+    ↓
+AutoSys Job
+    ↓
+AutoSys Condition
+    ↓
+AutoSys Command
+    ↓
+Script
+    ↓
+Parameter File
+    ↓
+Workflow
+    ↓
+Actual Session
+    ↓
+Mapping
+    ↓
+Source
+    ↓
+Target
+    ↓
+Resolved Runtime Values
+```
+
+Then we will compare:
+
+```text
+MAINFRAME NON-MOD
+        VS
+RDS MOD
+```
+
+for migration validation.
+
+---
+
+# 44. TRACEABILITY
+
+Every extracted value should be traceable back to the source XML.
+
+At minimum retain:
+
+```text
+source_xml_file
+folder_name
+workflow_name
+task_name
+session_name
+mapping_name
 ```
 
 where available.
 
----
-
-# 18. TRACEABILITY
-
-Every piece of extracted information should be traceable to its source.
-
-For example:
-
-```text
-source_xml_file
-workflow_name
-session_name
-mapping_name
-parameter_file
-script_file
-autosys_job
-```
-
-This is important because if we find a mismatch later, we need to know exactly which original file/value caused it.
+This will allow us to investigate any migration mismatch later.
 
 ---
 
-# 19. FUTURE FINAL DATA MODEL
+# 45. CURRENT DELIVERABLE
 
-The eventual end-to-end dataset should conceptually contain fields such as:
+First inspect the actual XML files.
 
-```text
-autosys_box
-autosys_job
-autosys_machine
-autosys_condition
-autosys_command
+Before coding, provide:
 
-script_file
-script_command
-parameter_file
+1. The discovered XML hierarchy.
+2. The namespaces.
+3. How Workflow objects are represented.
+4. How Tasks are represented.
+5. How Task references/shortcuts work.
+6. How the actual Session object is identified.
+7. How the exact Session name is obtained.
+8. How Mapping is referenced.
+9. How Source/Target are represented.
+10. How parameter files are represented.
+11. How workflow dependencies are represented.
+12. Any ambiguities found.
 
-informatica_folder
-workflow_name
-workflow_parameter
-workflow_parameter_value
+Then provide the complete executable Python implementation.
 
-session_order
-session_name
-mapping_name
+## FINAL HARD REQUIREMENT
 
-source
-source_file_path
-target
-target_file_path
+**The parser must resolve and extract the exact Session name from the actual Session object/reference in the Informatica XML.**
 
-session_parameters
-resolved_parameters
-
-predecessor
-successor
-workflow_condition
-```
-
-There may be many additional fields.
-
-This is a conceptual model only. Inspect the actual source files before finalizing the schema.
-
----
-
-# 20. DEVELOPMENT APPROACH
-
-Do not implement everything at once.
-
-The project should be developed in stages:
-
-### Stage 1
-
-Understand and extract AutoSys information.
-
-### Stage 2
-
-Understand and extract scripts.
-
-### Stage 3
-
-Understand and extract parameter files.
-
-### Stage 4
-
-Understand and extract Informatica workflow XML.
-
-### Stage 5
-
-Resolve relationships:
+It must NOT:
 
 ```text
-AutoSys → Script → Parameter File → Workflow
+strip "Shortcut_"
+guess the name
+construct the name
+use the task name as the session name
+use the mapping name as the session name
+assume a naming convention
 ```
 
-### Stage 6
-
-Resolve:
+If the actual Session object cannot be resolved, mark it:
 
 ```text
-Workflow → Session → Mapping → Source/Target
+session_resolution_status = Unresolved
 ```
 
-### Stage 7
+and explain why.
 
-Resolve actual parameter values.
-
-### Stage 8
-
-Build the complete end-to-end inventory.
-
-### Stage 9
-
-Compare Mainframe Non-Mod vs RDS Mod.
-
----
-
-# 21. CURRENT TASK
-
-For now, **DO NOT WRITE THE IMPLEMENTATION**.
-
-First:
-
-1. Understand this complete objective.
-2. Explain the end-to-end relationship in your own words.
-3. Identify the major entities and relationships.
-4. Identify what information needs to be extracted from each source:
-
-   * AutoSys
-   * Script files
-   * Parameter files
-   * Informatica XML
-5. Identify the keys that can be used to connect these datasets.
-6. Identify any ambiguities or missing information that must be determined from actual files.
-7. Propose a logical intermediate data model.
-8. Explain how the final end-to-end Mainframe vs RDS comparison can be performed.
-
-Do not assume the XML structure, script format, parameter-file format, or AutoSys format until the actual files are provided.
-
-The immediate goal is to make sure you fully understand the architecture and end-to-end objective before we start implementation.
+**Accuracy of the actual Session name and its relationship to the workflow task is more important than producing a populated value.**
