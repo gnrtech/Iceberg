@@ -1,1169 +1,1277 @@
-# Kiro AI Prompt — Dynamic Mainframe Non-Mod vs RDS Mod Validation
+# Kiro AI Prompt — Informatica Workflow XML to CSV Extraction
 
-I already have a CSV containing the **Full Outer Join** between Mainframe Non-Mod AutoSys jobs and RDS Mod/Migrated AutoSys jobs.
+I have a folder containing multiple **Informatica workflow XML files**.
 
-I now need to improve the validation implementation.
+I need a complete **Python XML parser** that reads all Informatica workflow XML files from the input folder and extracts detailed workflow/session/mapping/source/target/parameter information into CSV.
 
-The most important requirement is that the validation must be **dynamic based on the actual columns present in the input CSV**.
+The XML structure may vary between files, so **do not assume the XML tags or hierarchy from the examples below**.
 
-Do not hard-code only a small list of validation columns such as machine, job condition, or script path.
-
----
-
-# 1. INPUT CSV
-
-The input is an already-created Full Outer Join CSV.
-
-It contains:
-
-* Mainframe/Non-Mod columns
-* RDS/Mod columns
-* All existing job attributes
-
-Typical examples could be:
-
-```text
-left_box_name
-right_box_name
-
-left_job_name
-right_job_name
-
-left_machine_name
-right_machine_name
-
-left_job_condition
-right_job_condition
-
-left_alarm_if_terminated
-right_alarm_if_terminated
-
-left_script_path
-right_script_path
-
-left_owner
-right_owner
-
-left_priority
-right_priority
-
-left_run_calendar
-right_run_calendar
-
-...
-```
-
-However, these are examples only.
-
-The actual CSV may contain many more columns.
+First inspect the actual XML files and identify the Informatica XML structure, namespaces, attributes, and relationships. Then implement the parser based on the actual structure.
 
 ---
 
-# 2. FIRST REQUIREMENT — INSPECT ALL COLUMNS
+# 1. OBJECTIVE
 
-Before writing the validation logic, inspect the actual input DataFrame columns.
-
-Identify all:
+Convert Informatica workflow XML files into a structured CSV containing, at minimum:
 
 ```text
-left_* columns
-right_* columns
+folder_name
+workflow_name
+workflow_parameter_name
+workflow_parameter_value
+session_order
+session_name
+session_task_type
+mapping_name
+source
+target
+file_path
+session_parameter_file
+session_parameters
+workflow_variables
+predecessor
+successor
+condition
 ```
+
+The parser should extract as much relevant information as available from the XML.
+
+The final CSV should have **one logical row per workflow session/task**, with workflow-level and session-level information associated with that row.
+
+---
+
+# 2. INPUT
+
+The input is a directory containing multiple XML files.
+
+Example:
+
+```text
+/input/informatica/
+    workflow1.xml
+    workflow2.xml
+    workflow3.xml
+    workflow4.xml
+```
+
+The program should recursively scan the input directory so XML files inside subdirectories are also processed.
 
 For example:
 
 ```text
-left_machine_name
-right_machine_name
+/input/informatica/
+    folder1/
+        workflow1.xml
+        workflow2.xml
+
+    folder2/
+        workflow3.xml
 ```
 
-is a corresponding pair.
-
-Likewise:
-
-```text
-left_alarm_if_terminated
-right_alarm_if_terminated
-```
-
-is a corresponding pair.
-
-Likewise:
-
-```text
-left_owner
-right_owner
-```
-
-is a corresponding pair.
-
-The code must automatically discover these pairs.
-
-Do NOT maintain a manually hard-coded list like:
-
-```python
-validation_columns = [
-    "machine_name",
-    "job_condition",
-    "script_path"
-]
-```
-
-Instead dynamically identify the pairs from the actual CSV.
+The parser must process all `.xml` files.
 
 ---
 
-# 3. COLUMN PAIRING LOGIC
+# 3. FIRST — INSPECT THE XML STRUCTURE
 
-For every `left_` column:
+Before implementing the extraction logic:
 
-1. Remove the `left_` prefix.
-2. Look for the corresponding `right_` column.
+1. Read sample XML files.
+2. Identify the root element.
+3. Identify XML namespaces.
+4. Identify workflow elements.
+5. Identify folder/repository information.
+6. Identify workflow names.
+7. Identify workflow variables.
+8. Identify workflow parameters.
+9. Identify tasks.
+10. Identify session tasks.
+11. Identify session order.
+12. Identify mappings.
+13. Identify source definitions.
+14. Identify target definitions.
+15. Identify source/target file paths.
+16. Identify session parameter files.
+17. Identify session parameter values.
+18. Identify workflow links/dependencies.
+19. Identify predecessor/successor relationships.
+20. Identify dependency conditions.
+21. Identify any other useful workflow metadata.
+
+Do not hard-code the XML tags until the actual XML structure has been inspected.
+
+---
+
+# 4. FOLDER NAME
+
+Extract the Informatica folder/repository folder name if it exists in the XML.
+
+Output:
+
+```text
+folder_name
+```
 
 Example:
 
 ```text
-left_machine_name
-right_machine_name
+folder_name = CUSTOMER_DATA
 ```
 
-Base column:
+If the folder name is not explicitly stored in the XML, derive it from the appropriate source such as:
 
-```text
-machine_name
-```
+* XML metadata
+* Repository folder attribute
+* Parent directory name
 
-Create:
-
-```text
-machine_name_validation
-```
-
-Another example:
-
-```text
-left_alarm_if_terminated
-right_alarm_if_terminated
-```
-
-Create:
-
-```text
-alarm_if_terminated_validation
-```
-
-Another example:
-
-```text
-left_priority
-right_priority
-```
-
-Create:
-
-```text
-priority_validation
-```
-
-The same logic should work for any additional columns found in the CSV.
+Do not blindly use the XML filename as the folder name unless that is actually how the source data is structured.
 
 ---
 
-# 4. VALIDATION COLUMN — ONLY ONE COLUMN PER ATTRIBUTE
+# 5. WORKFLOW NAME
 
-For every left/right pair, create exactly **ONE validation column**.
+Extract the workflow name.
 
-Do NOT create:
-
-```text
-machine_validation
-machine_reason
-```
-
-Do NOT create:
+Output:
 
 ```text
-alarm_if_terminated_validation
-alarm_if_terminated_reason
+workflow_name
 ```
-
-Instead create only:
-
-```text
-machine_validation
-alarm_if_terminated_validation
-```
-
-The validation result and the mismatch reason must be stored in the same column.
-
----
-
-# 5. VALIDATION COLUMN VALUES
-
-If the left and right values match:
-
-```text
-Matched
-```
-
-If they do not match, do NOT put:
-
-```text
-Not Matched
-```
-
-Instead put the actual reason directly into the validation column.
 
 Example:
 
 ```text
-machine_validation
+workflow_name = wf_customer_load
 ```
 
-Value:
+If the XML contains workflow-level metadata, preserve it where useful.
+
+---
+
+# 6. WORKFLOW PARAMETERS
+
+Extract all workflow-level parameters and variables.
+
+Create:
 
 ```text
-Matched
+workflow_parameter_name
+workflow_parameter_value
+```
+
+If multiple workflow parameters exist, determine the best representation.
+
+Prefer one of the following approaches depending on the XML structure:
+
+### Option A — Multiple parameter columns
+
+If the parameter names are stable:
+
+```text
+workflow_parameter_$Source
+workflow_parameter_$Target
+workflow_parameter_$Environment
+```
+
+### Option B — Structured value
+
+If parameters are dynamic:
+
+```text
+workflow_parameters
+```
+
+with a readable representation such as:
+
+```text
+$Source=/data/input;
+$Target=/data/output;
+$Environment=PROD
+```
+
+Use the approach that works best for the actual XML structure.
+
+Do not lose any workflow parameters.
+
+---
+
+# 7. WORKFLOW VARIABLES
+
+Extract workflow variables separately from workflow parameters where the XML distinguishes them.
+
+Output:
+
+```text
+workflow_variables
+```
+
+Example:
+
+```text
+$$SOURCE_DIR=/data/source;
+$$TARGET_DIR=/data/target;
+$$ENV=PROD
+```
+
+Preserve parameter names and values.
+
+---
+
+# 8. WORKFLOW TASKS
+
+Identify all tasks inside each workflow.
+
+Possible task types may include:
+
+```text
+Session
+Command
+Decision
+Assignment
+Event Wait
+Timer
+Email
+Worklet
+Other Informatica task types
+```
+
+Do not assume only Session tasks exist.
+
+Extract:
+
+```text
+session_task_type
+```
+
+or preferably:
+
+```text
+task_type
+```
+
+Example:
+
+```text
+task_type = Session
+```
+
+---
+
+# 9. SESSION NAME
+
+For every Session task, extract:
+
+```text
+session_name
+```
+
+Example:
+
+```text
+session_name = s_customer_load
+```
+
+The session name should come from the actual XML task definition.
+
+---
+
+# 10. SESSION ORDER
+
+Determine the execution order of sessions/tasks within the workflow.
+
+Output:
+
+```text
+session_order
+```
+
+Example:
+
+```text
+1
+2
+3
+4
+```
+
+Important:
+
+Do NOT simply use the physical order in which XML nodes appear.
+
+The correct order should preferably be derived from the workflow links/dependencies.
+
+For example:
+
+```text
+Session_A
+    ↓
+Session_B
+    ↓
+Session_C
+```
+
+should result in:
+
+```text
+Session_A = 1
+Session_B = 2
+Session_C = 3
+```
+
+If the workflow has parallel branches:
+
+```text
+             Session_B
+            /
+Session_A
+            \
+             Session_C
+```
+
+then:
+
+```text
+Session_A = 1
+Session_B = 2
+Session_C = 2
+```
+
+or use a suitable execution level/stage representation.
+
+The parser must preserve the actual dependency relationships.
+
+---
+
+# 11. PREDECESSOR
+
+For every task/session, identify the predecessor task(s).
+
+Output:
+
+```text
+predecessor
+```
+
+Example:
+
+```text
+session_name = s_customer_load
+predecessor = s_extract_customer
+```
+
+If there are multiple predecessors:
+
+```text
+predecessor =
+s_extract_customer; s_validate_customer
+```
+
+Do not discard multiple dependencies.
+
+---
+
+# 12. SUCCESSOR
+
+Also identify successor tasks.
+
+Output:
+
+```text
+successor
+```
+
+Example:
+
+```text
+successor = s_load_customer
+```
+
+For multiple successors:
+
+```text
+successor =
+s_load_customer; s_archive_customer
+```
+
+---
+
+# 13. CONDITION
+
+Extract the workflow link condition if present.
+
+Output:
+
+```text
+condition
+```
+
+Example:
+
+```text
+condition = SUCCESS
 ```
 
 or:
 
 ```text
-machine_name mismatch: left='server1', right='server2'
+condition = $Session.Status = 0
 ```
+
+Preserve the actual condition from the XML.
+
+Do not simplify or remove important expressions.
 
 ---
 
-# 6. EXAMPLE — MACHINE
+# 14. MAPPING NAME
 
-Input:
-
-```text
-left_machine_name  = server1
-right_machine_name = server1
-```
+For every Session task, identify the mapping associated with the session.
 
 Output:
 
 ```text
-machine_validation = Matched
+mapping_name
 ```
 
-If:
+Example:
 
 ```text
-left_machine_name  = server1
-right_machine_name = server2
+mapping_name = m_customer_load
 ```
 
-Output:
+The mapping may be referenced indirectly through session configuration.
+
+Follow the XML relationships to correctly associate:
 
 ```text
-machine_validation =
-machine_name mismatch: left='server1', right='server2'
+Workflow
+   ↓
+Session
+   ↓
+Mapping
 ```
 
-Do NOT create:
-
-```text
-machine_validation = Not Matched
-machine_reason = ...
-```
-
-Only:
-
-```text
-machine_validation = machine_name mismatch: ...
-```
+Do not assume that the session name and mapping name are the same.
 
 ---
 
-# 7. EXAMPLE — ALARM_IF_TERMINATED
+# 15. SOURCES
 
-If the input contains:
-
-```text
-left_alarm_if_terminated  = Y
-right_alarm_if_terminated = Y
-```
+Extract all source objects used by the mapping/session.
 
 Output:
 
 ```text
-alarm_if_terminated_validation = Matched
+source
 ```
 
-If:
+Examples:
 
 ```text
-left_alarm_if_terminated  = Y
-right_alarm_if_terminated = N
+SRC_CUSTOMER
+SRC_ADDRESS
+SRC_ORDER
 ```
 
-Output:
+If multiple sources exist, preserve all of them.
+
+Example:
 
 ```text
-alarm_if_terminated_validation =
-alarm_if_terminated mismatch: left='Y', right='N'
+source =
+SRC_CUSTOMER; SRC_ADDRESS; SRC_PHONE
 ```
 
-This must work even if this column was not explicitly known when the Python code was written.
+Do not create separate rows unnecessarily unless the XML structure requires one row per source.
 
 ---
 
-# 8. EXAMPLE — OWNER
+# 16. TARGETS
 
-If:
+Extract all target objects.
+
+Output:
 
 ```text
-left_owner  = ABC
-right_owner = ABC
+target
+```
+
+Example:
+
+```text
+target = TGT_CUSTOMER
+```
+
+For multiple targets:
+
+```text
+target =
+TGT_CUSTOMER; TGT_CUSTOMER_AUDIT
+```
+
+Preserve all target information.
+
+---
+
+# 17. SOURCE FILE PATH
+
+If the source is a file, extract the file path.
+
+Example:
+
+```text
+file_path =
+/data/source/customer/customer.csv
+```
+
+If there are multiple source files, preserve all relevant paths.
+
+If the XML distinguishes source and target file paths, create separate columns:
+
+```text
+source_file_path
+target_file_path
+```
+
+Prefer this approach if the XML provides enough information.
+
+---
+
+# 18. TARGET FILE PATH
+
+Extract target file paths where available.
+
+Example:
+
+```text
+target_file_path =
+/data/output/customer/customer.csv
+```
+
+Do not confuse:
+
+```text
+source
+target
+file_path
+```
+
+These may represent different concepts.
+
+Use the actual XML structure to determine the correct mapping.
+
+---
+
+# 19. SESSION PARAMETER FILE
+
+Extract the Session parameter file.
+
+Output:
+
+```text
+session_parameter_file
+```
+
+Examples:
+
+```text
+$PMRootDir/Param/customer.param
+```
+
+or:
+
+```text
+/config/informatica/customer_session.par
+```
+
+If the XML contains the parameter file as an attribute or nested element, correctly follow that relationship.
+
+---
+
+# 20. SESSION PARAMETERS
+
+Extract session-level parameters/configuration.
+
+Output:
+
+```text
+session_parameters
+```
+
+Examples:
+
+```text
+$SourceDir=/data/source;
+$TargetDir=/data/target;
+$FileName=customer.csv
+```
+
+Preserve all available parameters.
+
+If the XML contains many parameter values, do not silently discard them.
+
+Use a readable key/value representation.
+
+---
+
+# 21. SESSION CONFIGURATION
+
+Also inspect the XML for useful session configuration such as:
+
+```text
+session log file
+session log directory
+workflow log
+error handling
+commit interval
+source connection
+target connection
+source database
+target database
+pre-SQL
+post-SQL
+parameter file
+operating system profile
+integration service
+partitioning
+recovery strategy
+```
+
+If these fields are present and useful, include them as additional CSV columns.
+
+The implementation should be extensible.
+
+---
+
+# 22. CONNECTION INFORMATION
+
+Where available, extract:
+
+```text
+source_connection
+target_connection
+```
+
+or equivalent Informatica connection information.
+
+Examples:
+
+```text
+source_connection = ORACLE_PROD
+target_connection = SNOWFLAKE_PROD
+```
+
+Do not expose credentials/passwords.
+
+If the XML contains sensitive credentials, do NOT output passwords, secrets, tokens, or private keys.
+
+---
+
+# 23. MULTIPLE SOURCES AND TARGETS
+
+A mapping may contain:
+
+```text
+Source1
+Source2
+Source3
+```
+
+and:
+
+```text
+Target1
+Target2
+```
+
+The CSV should retain all of them.
+
+Preferred representation:
+
+```text
+source =
+Source1; Source2; Source3
+
+target =
+Target1; Target2
+```
+
+Do not lose information.
+
+If source/target details need more granular reporting, optionally generate a second normalized CSV, but the primary requested CSV must contain the complete workflow/session information.
+
+---
+
+# 24. ONE ROW PER SESSION/TASK
+
+The primary output should generally contain:
+
+```text
+one row = one workflow session/task
+```
+
+Example:
+
+```text
+folder_name | workflow_name | session_order | session_name | mapping_name | source | target | ...
+```
+
+Example:
+
+```text
+CUSTOMER
+wf_customer_load
+1
+s_extract_customer
+m_extract_customer
+SRC_CUSTOMER
+STG_CUSTOMER
+...
 ```
 
 Then:
 
 ```text
-owner_validation = Matched
-```
-
-If:
-
-```text
-left_owner  = ABC
-right_owner = XYZ
-```
-
-Then:
-
-```text
-owner_validation =
-owner mismatch: left='ABC', right='XYZ'
+CUSTOMER
+wf_customer_load
+2
+s_transform_customer
+m_transform_customer
+STG_CUSTOMER
+TGT_CUSTOMER
+...
 ```
 
 ---
 
-# 9. EXAMPLE — SCRIPT PATH
+# 25. NON-SESSION TASKS
 
-If:
-
-```text
-left_script_path  = /root/dev/test1/abc.sh
-right_script_path = /root/dev/test1/abc.sh
-```
-
-Then:
+If the workflow contains non-session tasks such as:
 
 ```text
-script_path_validation = Matched
+Command
+Decision
+Assignment
+Email
+Timer
+Event Wait
+Worklet
 ```
 
-If:
+do not silently ignore them.
+
+Depending on the XML structure, include them with:
 
 ```text
-left_script_path  = /root/dev/test1/abc.sh
-right_script_path = /root/dev1/test1/abc.sh
+task_type
+task_name
 ```
 
-Then:
+and leave session-specific fields blank.
+
+Example:
 
 ```text
-script_path_validation =
-script_path mismatch: left='/root/dev/test1/abc.sh', right='/root/dev1/test1/abc.sh'
+task_type = Command
+task_name = cmd_archive
+session_name = null
+mapping_name = null
 ```
 
-Do not hide small differences.
+This ensures the workflow structure is not lost.
 
 ---
 
-# 10. NULL / BLANK / EMPTY VALUES
+# 26. WORKFLOW DEPENDENCY GRAPH
 
-Handle NULL and blank values carefully.
-
-The comparison logic must explicitly define how these are treated.
-
-At minimum:
-
-* Trim leading/trailing whitespace.
-* Treat actual null/NaN consistently.
-* Do not treat `0` as blank.
-* Do not treat `0` and null as equal.
-* Do not modify the original values.
-* Preserve the original left/right columns.
-
-If both are null/blank according to the defined normalization rule:
-
-```text
-Matched
-```
-
-If only one side is null/blank:
-
-```text
-<column> mismatch: left='<value>', right='<value>'
-```
-
----
-
-# 11. JOB NAME SPECIAL RULE
-
-Job names may have migration-specific naming differences.
+Build the workflow dependency graph.
 
 For example:
 
 ```text
-left_job_name  = EMP_CMD
-right_job_name = EMP_MOD_CMP
+s_extract
+   ↓
+s_validate
+   ↓
+s_load
 ```
 
-The RDS Mod side may contain `_MOD`, `_CMP`, or other migration-specific suffixes.
+Store:
 
-Implement a configurable job-name normalization/mapping function.
+```text
+predecessor
+successor
+condition
+```
+
+This will allow downstream comparison with other workflow formats later.
+
+If the workflow contains:
+
+```text
+s_extract
+    ↓
+decision
+   ↙   ↘
+s_load  s_error
+```
+
+preserve both branches.
+
+---
+
+# 27. SESSION ORDER / EXECUTION LEVEL
+
+Calculate a deterministic execution level based on dependencies.
 
 For example:
+
+```text
+Level 1:
+s_extract
+
+Level 2:
+s_validate
+s_validate_address
+
+Level 3:
+s_load
+```
+
+Store the numeric level in:
+
+```text
+session_order
+```
+
+If exact ordering cannot be determined because tasks run in parallel, do not invent an arbitrary order.
+
+Instead, use the same execution level for parallel tasks.
+
+Optionally create:
+
+```text
+execution_level
+```
+
+if this is clearer than overloading `session_order`.
+
+---
+
+# 28. XML NAMESPACE HANDLING
+
+The parser must properly handle XML namespaces.
+
+Do not assume:
 
 ```python
-normalize_job_name()
+root.find("Workflow")
 ```
 
-The original values must remain unchanged.
+will work.
 
-Only the validation comparison should use normalized values.
+Inspect namespaces first.
+
+Support XML documents with namespaces such as:
+
+```xml
+<Workflow xmlns="...">
+```
+
+or prefixed namespaces.
+
+Create reusable namespace-aware helper functions.
+
+---
+
+# 29. XML PARSING
+
+Prefer Python standard library:
+
+```python
+xml.etree.ElementTree
+```
+
+or `lxml` if the project already uses it.
+
+The parser should:
+
+* Handle malformed XML gracefully.
+* Log which file failed.
+* Continue processing remaining files.
+* Provide an error report.
+
+Example:
+
+```text
+workflow1.xml -> SUCCESS
+workflow2.xml -> SUCCESS
+workflow3.xml -> ERROR
+```
+
+Do not stop the entire process because one XML file is invalid.
+
+---
+
+# 30. FILE-LEVEL METADATA
+
+Also add:
+
+```text
+source_xml_file
+source_xml_path
+```
+
+so every CSV row can be traced back to the original XML.
+
+Example:
+
+```text
+source_xml_file = wf_customer.xml
+```
+
+Do not expose sensitive local filesystem information if unnecessary; use the relative path where appropriate.
+
+---
+
+# 31. OUTPUT COLUMNS
+
+At minimum, the final CSV should contain:
+
+```text
+source_xml_file
+folder_name
+workflow_name
+task_type
+task_name
+workflow_parameter_name
+workflow_parameter_value
+workflow_variables
+session_order
+session_name
+mapping_name
+source
+target
+source_file_path
+target_file_path
+file_path
+session_parameter_file
+session_parameters
+source_connection
+target_connection
+predecessor
+successor
+condition
+```
+
+Add other useful columns found in the XML.
+
+Do not remove information simply because it was not listed above.
+
+---
+
+# 32. DYNAMIC EXTRACTION
 
 Do not hard-code only:
 
 ```text
-EMP_CMD
-EMP_MOD_CMP
+session_name
+mapping_name
+source
+target
 ```
 
-because the real CSV contains many jobs.
+The parser should inspect the XML and extract the actual available fields.
+
+For example, if the XML contains:
+
+```text
+IsAbort
+IsEnabled
+FailParentIfTaskFails
+RecoveryStrategy
+CommitInterval
+```
+
+and these are session-level attributes, consider adding them as columns.
+
+The implementation should be designed so new fields can easily be added.
 
 ---
 
-# 12. JOB CONDITION / DEPENDENCY SPECIAL VALIDATION
+# 33. NULL HANDLING
 
-Job conditions require additional logic because they represent AutoSys dependencies.
+If a field does not exist for a particular task:
+
+```text
+null
+```
+
+or empty value may be used.
+
+Do not incorrectly copy a value from another session.
+
+Workflow-level values may be repeated for each session row when appropriate.
 
 For example:
 
 ```text
-BOX1:
-
-J1
-J2
-J3
-J4
-
-BOX2:
-
-J5 -> J4
-J6 -> J5
-J7 -> J6
+workflow_name
+folder_name
+workflow_variables
 ```
 
-The effective dependency chain is:
-
-```text
-J4 -> J5 -> J6 -> J7
-```
-
-The validation must compare Mainframe and RDS dependency relationships.
-
-It must support:
-
-* Same-box dependencies
-* Cross-box dependencies
-* Multiple dependencies
-* Dependency chains
-* Branching dependencies
-* Migration job-name mappings
-
-If the dependency relationship differs, the appropriate validation column should contain the actual reason.
-
-For example:
-
-```text
-job_condition_validation =
-dependency mismatch: job='J7', left_dependency='J6', right_dependency='J5'
-```
-
-If equivalent:
-
-```text
-job_condition_validation = Matched
-```
+can be repeated across all session rows belonging to that workflow.
 
 ---
 
-# 13. EXECUTION ORDER
+# 34. MULTIPLE XML FILES
 
-Where dependency information is available, derive the execution order from the dependency graph rather than relying only on the physical CSV row order.
+Process all XML files and combine the results into one CSV.
 
 Example:
 
 ```text
-J4 -> J5 -> J6 -> J7
+workflow1.xml
+workflow2.xml
+workflow3.xml
 ```
 
-means:
+Output:
 
 ```text
-J4 before J5
-J5 before J6
-J6 before J7
+informatica_workflow_inventory.csv
 ```
 
-Compare the Mainframe and RDS dependency/order relationships.
-
-If they are equivalent:
+Every row must retain:
 
 ```text
-order_validation = Matched
+source_xml_file
 ```
 
-If different:
-
-```text
-order_validation =
-execution order mismatch: left='J4 -> J5 -> J6 -> J7', right='J4 -> J5 -> J7'
-```
+so we know where it came from.
 
 ---
 
-# 14. BOX VALIDATION
+# 35. ERROR REPORT
 
-If the CSV contains:
-
-```text
-left_box_name
-right_box_name
-```
-
-create:
-
-```text
-box_name_validation
-```
-
-If equal:
-
-```text
-Matched
-```
-
-If different:
-
-```text
-box_name mismatch: left='BOX1', right='BOX2'
-```
-
-Support configurable box mappings if migration rules allow different box names.
-
----
-
-# 15. MISSING JOBS
-
-Because the input is a Full Outer Join, handle jobs that exist only on one side.
-
-If:
-
-```text
-left_job_name  = EMP_CMD
-right_job_name = null
-```
-
-then:
-
-```text
-job_validation =
-Job exists only on Mainframe/Non-Mod side
-```
-
-If:
-
-```text
-left_job_name  = null
-right_job_name = EMP_MOD_CMP
-```
-
-then:
-
-```text
-job_validation =
-Job exists only on RDS/Mod side
-```
-
----
-
-# 16. OVERALL VALIDATION STATUS
-
-Create one overall column:
-
-```text
-validation_status
-```
-
-This column can contain:
-
-```text
-Matched
-Not Matched
-```
-
-Rules:
-
-If every applicable validation passes:
-
-```text
-validation_status = Matched
-```
-
-If any validation fails:
-
-```text
-validation_status = Not Matched
-```
-
-The detailed reason must remain in the individual validation columns.
-
-For example:
-
-```text
-machine_validation =
-machine_name mismatch: left='server1', right='server2'
-
-alarm_if_terminated_validation =
-Matched
-
-script_path_validation =
-script_path mismatch: left='/root/dev/test1/abc.sh', right='/root/dev1/test1/abc.sh'
-
-validation_status =
-Not Matched
-```
-
----
-
-# 17. OVERALL VALIDATION REASON
-
-Do NOT create a separate reason column for every attribute.
-
-However, create one overall:
-
-```text
-validation_reason
-```
-
-that combines all failed validation messages.
+Create a separate processing summary/error report.
 
 Example:
 
 ```text
-validation_reason =
-machine_name mismatch: left='server1', right='server2';
-script_path mismatch: left='/root/dev/test1/abc.sh', right='/root/dev1/test1/abc.sh'
-```
-
-If everything matches:
-
-```text
-validation_reason = Matched
-```
-
-This gives us both:
-
-1. Individual validation result/reason
-2. Overall summary reason
-
----
-
-# 18. IMPORTANT — DO NOT CREATE DUPLICATE REASON COLUMNS
-
-Do NOT create:
-
-```text
-machine_validation
-machine_reason
-
-alarm_if_terminated_validation
-alarm_if_terminated_reason
-
-script_path_validation
-script_path_reason
-```
-
-Instead:
-
-```text
-machine_validation
-alarm_if_terminated_validation
-script_path_validation
-```
-
-Each validation column contains either:
-
-```text
-Matched
-```
-
-or the actual mismatch explanation.
-
----
-
-# 19. DYNAMIC VALIDATION COLUMN GENERATION
-
-The implementation should work approximately like this:
-
-```python
-for left_column in left_columns:
-
-    base_column = left_column.replace("left_", "", 1)
-
-    right_column = f"right_{base_column}"
-
-    if right_column not in df.columns:
-        continue
-
-    validation_column = f"{base_column}_validation"
-
-    # Compare left and right values
-
-    # If equivalent:
-    #     validation_column = "Matched"
-    #
-    # Otherwise:
-    #     validation_column =
-    #         f"{base_column} mismatch: left='{left_value}', right='{right_value}'"
-```
-
-But do not blindly apply generic comparison to columns that require special business logic.
-
-Create special handlers for:
-
-```text
-job_name
-job_condition
-dependency
-script_path
-box
-machine
-order
-```
-
-For all other ordinary left/right attributes, use the generic comparison.
-
----
-
-# 20. SPECIAL VS GENERIC VALIDATION
-
-Use two types of validation.
-
-### Generic attributes
-
-For example:
-
-```text
-owner
-priority
-alarm_if_terminated
-run_calendar
-notification
-description
-```
-
-Use normal left/right comparison.
-
-Example:
-
-```text
-left_alarm_if_terminated  = Y
-right_alarm_if_terminated = N
-```
-
-Result:
-
-```text
-alarm_if_terminated_validation =
-alarm_if_terminated mismatch: left='Y', right='N'
-```
-
-### Special attributes
-
-Use dedicated logic for:
-
-```text
-job_name
-job_condition
-dependency
-script_path
-box
-machine
-order
-```
-
-because these may require normalization or dependency analysis.
-
----
-
-# 21. DO NOT MISS ANY COLUMN
-
-This is critical.
-
-After reading the CSV, print/log:
-
-```text
-Total input columns:
-Total left columns:
-Total right columns:
-Matched left/right column pairs:
-Left-only columns:
-Right-only columns:
-Validation columns created:
-```
-
-For example:
-
-```text
-Total input columns: 120
-Left columns: 55
-Right columns: 55
-Matched pairs: 55
-Left-only columns: 5
-Right-only columns: 5
-Validation columns created: 55
-```
-
-This allows us to verify that attributes such as:
-
-```text
-alarm_if_terminated
-```
-
-were not accidentally missed.
-
----
-
-# 22. LEFT-ONLY / RIGHT-ONLY COLUMNS
-
-If a left column has no corresponding right column, do not silently ignore it.
-
-Report it in the logs/summary:
-
-```text
-Left-only column:
-left_some_attribute
-```
-
-Likewise:
-
-```text
-Right-only column:
-right_some_attribute
-```
-
-Do not create a validation column for an unmatched column unless explicitly required.
-
-But clearly report these columns so we know they were not compared.
-
----
-
-# 23. FINAL OUTPUT STRUCTURE
-
-The final DataFrame must be:
-
-```text
-ORIGINAL INPUT COLUMNS
-+
-DYNAMIC VALIDATION COLUMNS
-+
-OVERALL validation_status
-+
-OVERALL validation_reason
-```
-
-For example:
-
-```text
-left_job_name
-right_job_name
-left_machine_name
-right_machine_name
-left_alarm_if_terminated
-right_alarm_if_terminated
-left_script_path
-right_script_path
-...
-
-job_name_validation
-machine_name_validation
-alarm_if_terminated_validation
-script_path_validation
-job_condition_validation
-dependency_validation
-box_name_validation
-order_validation
-...
-
-validation_status
-validation_reason
-```
-
-All original columns must remain unchanged.
-
----
-
-# 24. ROW COUNT
-
-The final output must have the same number of rows as the input Full Outer Join.
-
-Do not perform another join that changes the row count.
-
-Example:
-
-```text
-Input rows  = 50,000
-Output rows = 50,000
-```
-
----
-
-# 25. SUMMARY
-
-Generate summary statistics after validation.
-
-At minimum:
-
-```text
-Total rows
-Matched rows
-Not Matched rows
-```
-
-And for every dynamically created validation column:
-
-```text
-column_name
-Matched count
-Mismatch count
+file_name
+status
+error_message
+workflow_count
+session_count
 ```
 
 Example:
 
 ```text
-machine_name_validation
-Matched       = 9,500
-Mismatch      = 500
-
-alarm_if_terminated_validation
-Matched       = 9,800
-Mismatch      = 200
-
-script_path_validation
-Matched       = 9,700
-Mismatch      = 300
-```
-
-Also show:
-
-```text
-Left-only columns
-Right-only columns
-Paired columns
-Validation columns created
+workflow1.xml | SUCCESS | | 1 | 15
+workflow2.xml | SUCCESS | | 1 | 8
+workflow3.xml | ERROR   | Invalid XML | 0 | 0
 ```
 
 ---
 
-# 26. FINAL IMPLEMENTATION REQUIREMENT
+# 36. SUMMARY REPORT
 
-Provide complete executable Python/Pandas code.
-
-The code must:
-
-1. Read the existing Full Outer Join CSV.
-2. Inspect all actual columns.
-3. Dynamically identify `left_*` and `right_*` pairs.
-4. Create one validation column for every comparable pair.
-5. Put `Matched` into the validation column when values match.
-6. Put the actual mismatch reason directly into that validation column when values differ.
-7. Do NOT create separate reason columns for each attribute.
-8. Create one overall `validation_status`.
-9. Create one overall `validation_reason`.
-10. Preserve every original input column.
-11. Preserve original input values.
-12. Preserve the original row count.
-13. Handle missing jobs.
-14. Handle migration-specific job-name mappings.
-15. Handle AutoSys job conditions.
-16. Handle cross-box dependencies.
-17. Handle execution order.
-18. Handle script path differences.
-19. Handle NULL/blank values correctly.
-20. Dynamically include columns such as `alarm_if_terminated` and any other attributes present in the CSV.
-21. Report left-only and right-only columns.
-22. Generate validation summary counts.
-23. Write the final result to a NEW CSV without modifying the original input CSV.
-
-The key design principle is:
+After processing all XML files, print:
 
 ```text
-DO NOT HARD-CODE THE VALIDATION COLUMNS.
-
-FIRST DISCOVER ALL LEFT/RIGHT COLUMN PAIRS.
-THEN CREATE VALIDATION COLUMNS DYNAMICALLY.
-
-For every validation column:
-
-MATCH    -> "Matched"
-MISMATCH -> "<actual mismatch reason>"
-
-Do NOT use:
-"Mismatched" + separate reason column.
+Total XML files
+Successfully processed
+Failed files
+Total workflows
+Total sessions/tasks
+Total mappings
+Total sources
+Total targets
 ```
 
-=======
-1==>
-Coding (Quality Code, Abides to Coding Principles, Ownership of the code) 1) High quality code 2) Code meets functionality 3) Unit tested (automated) 4) Code review and evidence 5) Mentoring team members during coding & code review 6) Doneness criteria met
+Example:
 
- Writes clean and well-organized code, making it easy to understand and maintain.
- Consistently adheres to coding standards, ensuring code consistency across the project.
- Effectively applies design patterns to improve code structure and maintainability.
- Implemented unit tests for 2 repos (ODS Data & Streaming Core) with 90% code coverage.
- For Each PR , will will provide proper description of the change and will attach test document.
- Ensure that all unit tests are automated and integrated into the CI/CD pipeline.
- Actively participates in code reviews, providing constructive feedback to improve code quality.
- 
+```text
+Total XML files       = 100
+Successfully processed = 98
+Failed                  = 2
+Total workflows        = 98
+Total sessions/tasks   = 1,250
+Total mappings         = 1,100
+Total sources          = 1,500
+Total targets          = 1,250
+```
 
+---
 
+# 37. IMPORTANT — DO NOT GUESS XML TAGS
 
+The biggest requirement is:
 
-2==>
-Design & Architecture (Quality of Design, Abides to the Design Principles, Abides to the Architectural Guidelines, UML based design, Maintains a consistent, clean and efficient approach to coding) 1) Architecture & Design practices addressing performance, maintenance, enhancement, feature addition, non functional requirements etc. 2) Clean, simple and consistent design 3) Well documented design & architecture 4) Good OO practices including usage of design patterns as needed 5) Reuse (as applicable)
+**Inspect the actual Informatica XML files before implementing the parser.**
 
-I have diligently applied architectural practices that address key aspects such as performance, maintenance, and scalability. By conducting thorough performance assessments and integrating optimization strategies, I have ensured that the architecture supports current and future requirements
-My design approach emphasizes simplicity and consistency, aiming to create clean and understandable architectures.
-I  prioritize comprehensive documentation for all design and architectural elements. 
-My documentation includes detailed descriptions of design decisions, architecture diagrams, and usage guidelines. This practice ensures that team members have a clear understanding of the system’s structure and functionality, which facilitates smoother onboarding and knowledge transfer.
-I  consistently apply good object-oriented (OO) practices and utilize design patterns as appropriate. By adhering to principles such as encapsulation, inheritance, and polymorphism
-I have actively sought opportunities for code and design reuse to enhance efficiency and reduce redundancy.
-Each project will maintain seperate utils package to define common functionalites 
+Do not assume that Informatica XML uses generic tags such as:
 
-3==>
-Successful Delivery 1) Timeliness of deliverables 2) Proactive reporting including escalations of issues/ risks 3) Cost consciousness
+```text
+<Workflow>
+<Session>
+<Mapping>
+<Source>
+<Target>
+```
 
-I have consistently demonstrated a strong commitment to meeting project deadlines by effectively managing my time and resources. 
-I have maintained a proactive stance on reporting progress and potential issues. By providing regular updates and addressing concerns early, I have ensured that stakeholders are well-informed and that any risks or obstacles are managed promptly.
-I am mindful of cost implications throughout the project lifecycle. By carefully managing resources and seeking cost-effective solutions.
-4==>
-Technical mentoring 1) Mentoring and grooming junior team members
- 
- I have actively mentored junior team members by providing clear guidance, support, and constructive feedback on their work.
- Shared insights and best practices related to technologies and processes, ensuring that junior team members understand and can apply them effectively
+without verifying the actual XML.
 
-5==>
-Motivating team members 1)Encouraging a participative work culture and flexibility in dealing with different personalities/ situations.
+Informatica exports may contain nested structures, attributes, namespaces, and references.
 
-I actively encourage team members to take initiative and contribute to decision-making processes. 
-By soliciting input from everyone and valuing their contributions, I have empowered team members to take ownership of their tasks and feel more invested in the team's success. This participative approach has fostered a sense of camaraderie and collective responsibility
-I have prioritized open and transparent communication within the team, which has been crucial in fostering a collaborative work culture. 
-By actively listening to feedback and encouraging dialogue, I have been able to address concerns promptly and keep the team aligned on our goals. This has also facilitated better problem-solving and a more supportive team dynamic.
+Build the parser according to the actual XML structure.
 
+---
 
-6==>
-Technical/ functional expertise 1) Knowledge of relevant technologies used in project, application, business/ domain of the customer 2) Analytical skills 3) Problem solving capabilities 4) Understanding of application & business requirements to support decision making at project execution
+# 38. VALIDATION OF EXTRACTION
 
-I take up training and upskilling every quarter to stay relevant for my role
-Maintained up-to-date knowledge of how these technologies integrate with the application and meet the needs of the business/domain
-I have effectively used analytical tools and techniques to interpret complex data sets and derive actionable insights.
-Developed and implemented solutions that resolved issues and improved project performance.
-Effectively communicated requirements to stakeholders and team members, facilitating smooth project execution.
+After generating the CSV, perform basic validation.
 
-7==>
-Quality Process Compliance/Orientation 1) Process documentation 2) Causal analysis 3) Support SEPG to define standards 4) Process metrics (All the above are related to technical/ technology areas)
+For every workflow:
 
-Will maintain process document for each project in GH Docs, ensuring it is comprehensive and easily understandable.
-Regularly reviewed and validated documentation to ensure it accurately reflects current processes and practices.
-Ensured that all documentation is readily accessible to team members and stakeholders, facilitating compliance and process adherence.
-Developed and implemented corrective actions based on causal analysis findings to prevent recurrence of issues 
-Actively participated in discussions and workshops with the SEPG to help define and refine technical standards.
+```text
+workflow_name
+```
 
-8==>
-Revenue / Profit Realization 1) Timely Realization of entire revenue 2) Gross Profit Margin Target achievement 3) Cost Control through pyramid management & other actions 4) Timely submission of filled timesheet by the team members
+should have the expected number of sessions/tasks.
 
-9==>
-Meeting or exceeding client expectations 1) Feedback from customer (if applicable) on overall performance (communication, technical, responsiveness, teamwork etc.) 2) Enabling growth in the existing customer/ account/ project 3) Contributions to a successful partnership (feedback, ideas, alternate ways of doing things etc.)
+For every Session task:
 
+```text
+session_name
+```
 
+should be populated.
 
-=====
-1)
-Meeting or exceeding client expectations 1) Feedback from customer (if applicable) on overall performance (communication, technical, responsiveness, teamwork etc.) 2) Enabling growth in the existing customer/ account/ project 3) Contributions to a successful partnership (feedback, ideas, alternate ways of doing things etc.)
-Collaborating closely with clients to understand their needs and develop mutually beneficial solutions
-Providing constructive feedback and suggestions for improvement, helping to identify and address potential issues
+Where available:
 
-2)
-Revenue / Profit Realization 1) Timely Realization of entire revenue 2) Gross Profit Margin Target achievement 3) Cost Control through pyramid management & other actions 4) Timely submission of filled timesheet by the team members
-Submitting my timesheet on time and in full each week
-Double-checking my hours worked and accuracy of information
+```text
+mapping_name
+source
+target
+```
 
+should be populated.
 
-3)
-Quality Process Compliance/Orientation 1) Process documentation 2) Causal analysis 3) Support SEPG to define standards 4) Process metrics (All the above are related to technical/ technology areas)
+Check for suspicious extraction results such as:
 
-	Will maintain process document for each project in GH Docs, ensuring it is comprehensive and easily understandable.
-	Regularly reviewed and validated documentation to ensure it accurately reflects current processes and practices.
-	Ensured that all documentation is readily accessible to team members and stakeholders, facilitating compliance and process adherence.
-	Developed and implemented corrective actions based on causal analysis findings to prevent recurrence of issues 
-	Actively participated in discussions and workshops with the SEPG to help define and refine technical standards.
+```text
+session_count = 0
+mapping_count = 0
+source_count = 0
+target_count = 0
+```
 
+and report them.
 
-4)
-Technical/ functional expertise 1) Knowledge of relevant technologies used in project, application, business/ domain of the customer 2) Analytical skills 3) Problem solving capabilities 4) Understanding of application & business requirements to support decision making at project execution
+---
 
-	I take up training and upskilling every quarter to stay relevant for my role.
-	Maintained up-to-date knowledge of how these technologies integrate with the application and meet the needs of the business/domain
-	I have effectively used analytical tools and techniques to interpret complex data sets and derive actionable insights.
-	Developed and implemented solutions that resolved issues and improved project performance.
-	Effectively communicated requirements to stakeholders and team members, facilitating smooth project execution.
+# 39. SAMPLE OUTPUT
 
-5)
-Motivating team members 1)Encouraging a participative work culture and flexibility in dealing with different personalities/ situations.
+The final CSV should conceptually look like:
 
-	I actively encourage team members to take initiative and contribute to decision-making processes. 
-	By soliciting input from everyone and valuing their contributions, I have empowered team members to take ownership of their tasks and feel more invested in the team's success. This participative approach has fostered a sense of camaraderie and collective responsibility
-	I have prioritized open and transparent communication within the team, which has been crucial in fostering a collaborative work culture. 
-	By actively listening to feedback and encouraging dialogue, I have been able to address concerns promptly and keep the team aligned on our goals. This has also facilitated better problem-solving and a more supportive team dynamic.
+```text
+source_xml_file,
+folder_name,
+workflow_name,
+task_type,
+task_name,
+session_order,
+session_name,
+mapping_name,
+source,
+target,
+source_file_path,
+target_file_path,
+session_parameter_file,
+session_parameters,
+workflow_variables,
+predecessor,
+successor,
+condition
+```
 
-6)
-Technical mentoring 1) Mentoring and grooming junior team members
+Example:
 
-As a technical mentor I'm helping junior team members develop their skills and knowledge, and to ensure that they are equipped to handle their responsibilities effectively
+```text
+wf_customer.xml,
+CUSTOMER,
+wf_customer_load,
+Session,
+s_extract_customer,
+1,
+s_extract_customer,
+m_extract_customer,
+SRC_CUSTOMER,
+STG_CUSTOMER,
+/data/source/customer.csv,
+/data/stage/customer.csv,
+/config/customer.par,
+$FileName=customer.csv,
+$$SOURCE_DIR=/data/source,
+,
+s_transform_customer,
+SUCCESS
+```
 
-7)
-Successful Delivery 1) Timeliness of deliverables 2) Proactive reporting including escalations of issues/ risks 3) Cost consciousness
-	
-	I have consistently demonstrated a strong commitment to meeting project deadlines by effectively managing my time and resources. 
-	I have maintained a proactive stance on reporting progress and potential issues. By providing regular updates and addressing concerns early, I have ensured that stakeholders are well-informed and that any risks or obstacles are managed promptly.
-	I am mindful of cost implications throughout the project lifecycle. By carefully managing resources and seeking cost-effective solutions.
+---
 
-8)
-Coding (Quality Code, Abides to Coding Principles, Ownership of the code) 1) High quality code 2) Code meets functionality 3) Unit tested (automated) 4) Code review and evidence 5) Mentoring team members during coding & code review 6) Doneness criteria met
+# 40. DELIVERABLE
 
-	 Writes clean and well-organized code, making it easy to understand and maintain.
-	 Consistently adheres to coding standards, ensuring code consistency across the project.
-	 Effectively applies design patterns to improve code structure and maintainability.
-	 Implemented unit tests for 2 repos (ODS Data & Streaming Core) with 90% code coverage.
-	 For Each PR , will will provide proper description of the change and will attach test document.
-	 Ensure that all unit tests are automated and integrated into the CI/CD pipeline.
-	 Actively participates in code reviews, providing constructive feedback to improve code quality.
+Create a complete, executable Python implementation that:
 
-9)
-Design & Architecture (Quality of Design, Abides to the Design Principles, Abides to the Architectural Guidelines, UML based design, Maintains a consistent, clean and efficient approach to coding) 1) Architecture & Design practices addressing performance, maintenance, enhancement, feature addition, non functional requirements etc. 2) Clean, simple and consistent design 3) Well documented design & architecture 4) Good OO practices including usage of design patterns as needed 5) Reuse (as applicable)
+1. Recursively reads all Informatica `.xml` files.
+2. Inspects the actual XML structure.
+3. Handles XML namespaces.
+4. Extracts folder name.
+5. Extracts workflow name.
+6. Extracts workflow parameters.
+7. Extracts workflow variables.
+8. Extracts all workflow tasks.
+9. Extracts task type.
+10. Extracts session name.
+11. Determines session/execution order from dependencies.
+12. Extracts predecessor.
+13. Extracts successor.
+14. Extracts workflow conditions.
+15. Extracts mapping name.
+16. Extracts all sources.
+17. Extracts all targets.
+18. Extracts source file paths.
+19. Extracts target file paths.
+20. Extracts session parameter file.
+21. Extracts session parameters.
+22. Extracts connection information where available.
+23. Preserves cross-task dependencies.
+24. Handles multiple sources/targets.
+25. Handles non-session tasks.
+26. Handles parallel workflow branches.
+27. Handles malformed XML without stopping the entire process.
+28. Produces one consolidated CSV.
+29. Produces a processing/error report.
+30. Produces extraction summary statistics.
+31. Includes the original XML filename for traceability.
+32. Does not expose credentials, passwords, tokens, or secrets.
+33. Is modular and easy to extend for additional Informatica XML fields.
 
-	I have diligently applied architectural practices that address key aspects such as performance, maintenance, and scalability. By conducting thorough performance assessments and integrating optimization strategies, I have ensured that the architecture supports current and future requirements
-	My design approach emphasizes simplicity and consistency, aiming to create clean and understandable architectures.
-	I prioritize comprehensive documentation for all design and architectural elements. 
-	My documentation includes detailed descriptions of design decisions, architecture diagrams, and usage guidelines. This practice ensures that team members have a clear understanding of the system’s structure and functionality, which facilitates smoother onboarding and knowledge transfer.
-	I consistently apply good object-oriented (OO) practices and utilize design patterns as appropriate. By adhering to principles such as encapsulation, inheritance, and polymorphism
-	I have actively sought opportunities for code and design reuse to enhance efficiency and reduce redundancy.
-	Each project will maintain separate utils package to define common functionalities 
+The primary output should be:
+
+```text
+informatica_workflow_inventory.csv
+```
+
+and the processing report should be:
+
+```text
+informatica_xml_processing_report.csv
+```
+
+Before writing the parser, inspect the actual XML files and adapt the extraction logic to their real structure.
